@@ -1,0 +1,395 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Computer Graphics - PA4</title>
+
+    <link href="resources/bootstrap.min.css" rel="stylesheet">
+    <link href="resources/offcanvas.css" rel="stylesheet">
+    <link href="resources/custom2014.css" rel="stylesheet">
+    <link href="resources/twentytwenty.css" rel="stylesheet" type="text/css" />
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+
+<div class="container headerBar">
+		<h1>Computer Graphics Project - Shuhao Li & Zeren Jiang</h1>
+</div>
+
+<div class="container contentWrapper">
+<div class="pageContent">
+
+	<!-- ================================================================= -->
+    <h1> Shuhao Li's Features</h1>
+	<h2>Feature 1: Image as Textures (5 pts)</h2>
+
+	<p>Related files: <em>image.h, image.cpp, imagetexture.cpp</em></p>
+    <p>Time Spent: 1 hr</p>
+
+    <p>
+        I created an <em>Image</em> class for this and other features like bump mapping and environment emitter.
+        This class is capable of reading and doing bilinear interpolation in the image. With the help of the 
+        interpolation method, I can use the uv coordinate of the hit point directly for querying pixel
+        colors in the image.
+    </p>
+    <img src="images/shuhao/image_texture/sphere-texture.png" title="Sphere with UV checker pattern" width="100%"/> <br> <br> <br> <br>
+    <p>
+        Texture tiling also got implemented.
+    </p>
+    <img src="images/shuhao/image_texture/sphere-texture-tiled.png" title="Sphere with UV checker pattern" width="100%"/> <br> <br> <br> <br>
+
+	<!-- ================================================================= -->
+
+    <h2>Feature 2: Textured Area Emitters (5 pts)</h2>
+
+    <p>Related files: <em>emitter.h, arealight.cpp, quad.cpp, d2ddist.h, d2ddist.cpp, image.h, image.cpp</em></p>
+    <p>Time Spent: 1 hr</p>
+
+    <p>
+        An area emitter can be textured by adding a texture image to the emitter, and use the image value
+        at the hitted or sampled point as the radiance of the emitter. To make the brightness of the emitter be easily
+        adjustable in the texture mode, the first element of the "radiance" property is used to control the overall brightness
+        of the texture image.
+    </p>
+    <p>
+        Importance sampling of the area emitter is implemented on the quad shape only. A <em>Discrete2DDistribution</em> class
+        was created for the warping and pdf computing routine in importance sampling. To enable importance sampling for quad
+        emitters, a "importance_file" needs to be provided to the quad shape, which in most cases should just be the texture image
+        of the emitter itself.
+    </p>
+    <p>
+        Points on the quad will gets sampled according to the luminance of the reference importance image. If the image is identical to the texture of the emitter,
+        the distribution of the sampled points on the quad should mataches the brightness level of the texture image. The benefit of
+        doing importance sampling in this way is that we can provide a low-resolution version of the texture image as the importance reference, which
+        can significantly reduce the computational cost of importance sampling while the texture remains sharp. The effectiveness of this technique
+        will be further demonstrated in the environment emitter section.
+    </p>
+
+    <p>
+        The following scenes are both rendered by <em>path_mis</em> integrator with 5 samples. The one on the right is rendered with importance sampling
+        enabled while the one on the left is not. We can clearly see that due to the sparsity of the emitting area on the quad, image rendered
+        with out importance sampling did not get many valid samples in the image.
+    </p>
+    <div class="twentytwenty-container">
+        <img src="images/shuhao/textured_emitter/cross-nis.png" alt="Without Importance Sampling" class="img-responsive">
+        <img src="images/shuhao/textured_emitter/cross-is.png" alt="With Importance Sampling" class="img-responsive">
+    </div>
+    <br> <br> <br> <br>
+
+
+    <!-- ================================================================= -->
+
+    <h2>Feature 3: Bump mapping (5 pts)</h2>
+    <p>Related files: <em>mesh.cpp, mesh.h, obj.cpp, sphere.cpp, quad.cpp</em></p>
+    <p>Time Spent: 3 hr</p>
+
+    <p>
+        The <a href="https://www.pbr-book.org/3ed-2018/Materials/Bump_Mapping">bump mapping</a> chapter of the pbrt book was pretty helpful when I was implementing
+        this feature. Bump mapping was implemented for general mesh, sphere and quad. The bumpiness of the bump mapping can be controled via the <em>level</em> parameter
+        of the shape.
+    </p>
+    <img src="images/shuhao/bump_mapping/mesh_bump.png" title="Bump Mesh" width="100%"/>
+    <div class="twentytwenty-container">
+        <img src="images/shuhao/bump_mapping/earth_bump_1.png" alt="Bump level of quad: 1.0" class="img-responsive">
+        <img src="images/shuhao/bump_mapping/earth_bump_0.2.png" alt="Bump level of quad: 0.2" class="img-responsive">
+    </div>
+    <br> <br> <br> <br>
+    
+
+    <!-- ================================================================= -->
+    <h2>Feature 4: Environment Emitter (15 pts)</h2>
+    <p>Related files: <em>envlight.cpp, d2ddist.h, d2ddist.cpp, image.h, image.cpp</em></p>
+    <p>Time Spent: 6 hr</p>
+
+    <p>
+        The environment emitter was implemented as an infinite shape and an area emitter combined together. The <em>rayIntersect</em> method of the shape will always return true
+        when the <em>maxt</em> of the ray equals to infinity. The <em>Discrete2DDistribution</em> class was actually implemented when completing this task as I did
+        this before the textured emitter feature. Importance sampling for environment emitter was implemented according to the method proposed in the letter slide.
+        Using low resolution version of the texture image as importance sampling reference is also supported.
+    </p>
+    <p>
+        To demonstrate the effectiveness of importance sampling, following scenes are rendered with and without importance sampling. The chosen environment emitter is simply a small
+        white dot on the north pole of the sky ball.
+    </p>
+    <div class="twentytwenty-container">
+        <img src="images/shuhao/environment_emitter/simple_is.png" alt="With Importance Sampling" class="img-responsive">
+        <img src="images/shuhao/environment_emitter/simple_nis.png" alt="Without Importance Sampling" class="img-responsive">
+    </div>
+    <p>
+    For environment emitter with finner detail levels, using a low resolution of the texture image as importance sampling reference can greatly speed up the rendering speed while
+    preserving the sharpness of the environment map.
+    </p>
+    <img src="images/shuhao/environment_emitter/starfield.jpg" title="Starfield Environment Map (6000px * 4500px)" width="100%"/>
+    <p>
+        Following scenes are all rendered with <em>path_mis</em> integrator with 5 samples.
+    </p>
+    <div class="twentytwenty-container">
+        <img src="images/shuhao/environment_emitter/env_emitter_is_4s.png" alt="Importance Sampling Reference Resolution: 1920 x 1440 (Rendering time: 4s)" class="img-responsive">
+        <img src="images/shuhao/environment_emitter/env_emitter_is_16.7s.png" alt="Importance Sampling Reference Resolution: 6000 x 4500 (Rendering time: 16.7s)" class="img-responsive">
+        <img src="images/shuhao/environment_emitter/env_emitter_nis.png" alt="Without Importance Sampling" class="img-responsive">
+    </div>
+    <p>
+        Church scene rendered with <em>path_mis</em> integrator with 64 samples.
+    </p>
+    <img src="images/shuhao/environment_emitter/env_church.png" title="Church environment emitter" width="100%"/>
+    <br> <br> <br> <br>
+    <!-- ================================================================= -->
+
+    <h2>Feature 5: Path Guiding (Practical Path Guiding for Efficient Light-Transport Simulation) (30 pts)</h2>
+    <p>Related files: <em>render.cpp, path_guiding_mis.cpp, integrator.h, sdtree.h, sdtree.cpp</em></p>
+    <p>Time Spent: 20 hr</p>
+    <h3>Spatial Directional Tree (SDTree)</h3>
+    <p>
+        The SDTree data structure described in the paper is implemented as a <em>SDTree</em> class. For performance consideration, all routines that will be used in the <em>Li</em> method of
+        the integrator are implemented with loops only. The <em>localToWorld</em> and <em>worldToLocal</em> method defined in <em>sdtree.h</em> defines the transformation between the 2D
+        coordinate in the Directional Quadtree and the direction in the world coordinate. These transformation routine was implemented in an area-preserving fashion as described in the paper.
+        In other words, two equal-area regions in the directional quadtree indicates two regions with the same solid angle on the direction sphere.
+    </p>
+    <h3>Integrator</h3>
+    <p>
+        For the clearness of the implementation, the integrator was implemented in a recursive fashion. In order to prevent stack overflowing (which did happened once when I was debugging it),
+        the maximum kill probability used for russian roullete is described as a function corresponding to the recursion depth. The deeper the recursion level is, the lower the chance for the
+        integrator to trace new rays. The use of such maximum kill probability can cut the long tail of the regular geometric distribution (distribution of the maximum recursion depth
+        when the maximum kill probability is a constant), while the distribution of the maximum recursion depth can be controled by the parameters in the function.
+    </p>
+    <img src="images/shuhao/path_guiding/Figure_1.png" title="Currently used maximum recursion depth distribution" width="100%"/>
+    <p>
+        Path guiding can only deal with "hittable" light sources. For unhittable emitters light point light, it is impossible for path guiding method to generate a ray that can hit a single point in the space.
+        Therefore, to improve the compatibility of
+        the integrator with such emitters, an additional emitter sampling procedure that only samples those "unhittable" emitters is implemented in the integrator.
+    </p>
+    <p>
+        To show the integrator is unbiased, I ran the tests from assignments and passed all of them.
+    </p>
+    <img src="images/shuhao/path_guiding/test-direct-result.png" title="test-direct result" width="100%"/>
+    <img src="images/shuhao/path_guiding/test-furnace-result.png" title="test-furnace result" width="100%"/>
+    <p>
+        Following are the cornell box scene rendered with <em>path_guiding_mis</em> and <em>path_mats</em> integrator. As path guiding algorithm get its knowledge from BSDF sampling, comparing
+        it against pure BSDF sampling make more sense than comparing against <em>path_mis</em> integrator, which also use emitter sampling.
+    </p>
+    <div class="twentytwenty-container">
+        <img src="images/shuhao/path_guiding/cbox_path_mats_512.png" alt="path_mats with 512 samples" class="img-responsive">
+        <img src="images/shuhao/path_guiding/cbox_path_mats_1023.png" alt="path_mats with 1023 samples" class="img-responsive">
+        <img src="images/shuhao/path_guiding/cbox_path_guiding_mis_1023.png" alt="path_guiding_mis with 1023 samples (last round 512 samples)" class="img-responsive">
+    </div>
+    <p>
+        We can see that path guiding indeed helped to reduce image noise by a lot.
+    </p>
+    <p>
+        <em>Current issue regarding to Euler: </em>The gcc compiler on Euler does not have a usable atomic library support. Therefore, I used mutex lock around all criticle variable update in the sdtree in the current version of code.
+        The mutex lock slows the performance of the path guiding integrator by a lot.
+    </p>
+
+    <h2>All combined</h2>
+    <p>
+        A simple scene that combines almost every features that I have implemented, except importance sampling for emitters, as it is not supported by path guiding.
+    </p>
+    <img src="images/shuhao/combined.png" title="test-direct result" width="100%"/>
+
+    <!-- ================================================================= -->
+    <h1> Zeren Jiang's Features</h1>
+	<h2>Feature 1: Spotlight (5 pts)</h2>
+
+	<p>Related files: <em>spotlight.cpp</em></p>
+    <p>Time Spent: 3 hr</p>
+
+    <p>
+        I created an <em>SpotLight</em> class which inherited from Emitter. I implement this feature by using PBRT book as a reference. 
+        The class contain 5 parameters, light position, light radiance, light direction, cosTotalWidth and cosFalloffStart. The light radiance is constant with cosFalloffStart angle and generally reduce to zero from cosFalloffStart to cosTotalWidth.
+        For validation, I use mitsuba as a reference. The parameter is the same with cosTotalWidth=20, cosFalloffStart=20, radiance=15. For a better comparison, I add global homogeneous medium into the rendered scene.
+    </p>
+
+    <div class="twentytwenty-container">
+        <img src="images/Zeren/cbox_volpathmis_spotlight.png" alt="Mine" class="img-responsive">
+        <img src="images/Zeren/spotlight_mitsuba.png" alt="Mitsuba3" class="img-responsive">
+    </div>
+    <!-- ================================================================= -->
+    <h2>Feature 2: Rendering with Euler (5 pts)</h2>
+
+	<p>Related files: <em>main.cpp</em></p>
+    <p>Time Spent: 2 hr</p>
+
+    <p>
+        I closed the GUI of the nori, to render it on Euler. The following are some instruction for rendering on euler. You need to first load newest version of gcc and cmake to compile the source code.
+    </p>
+    <code>
+        module load gcc/4.8.5 cmake/3.4.3
+    </code>
+    <p>
+        Then following the instruction on README.md to compile the code. In the end, run the following command:
+    </p>
+    <code>
+        ./nori 	&lt;path_to_your_xml&gt; nogui
+    </code>
+    <img src="images/Zeren/runing_on_euler.png" title="Runing on Euler" width="80%"/> <br> <br> <br> <br>
+    <div class="twentytwenty-container">
+        <img src="images/Zeren/cbox_volpathmis.png" alt="Mine" class="img-responsive">
+        <img src="images/Zeren/Euler_medium.png" alt="Euler" class="img-responsive">
+    </div>
+
+    <!-- ============================TODO compare render on Euler and Mine===================================== -->
+
+    <!-- <div class="twentytwenty-container">
+        <img src="images/Zeren/cbox_volpathmis_spotlight.png" alt="Mine" class="img-responsive">
+        <img src="images/Zeren/spotlight_mitsuba.png" alt="Mitsuba3" class="img-responsive">
+    </div> -->
+
+    <!-- ================================================================= -->
+    <h2>Feature 3: Modeling Meshes (5 pts)</h2>
+    <p>Related files: <em>*.obj</em></p>
+    <p>Time Spent: 3 hr</p>
+    <p>
+        I use blender to model human meshes with different poses based on SMPL-X adds-on. 
+    </p>
+    <code>
+        ./nori 	&lt;path_to_your_xml&gt; nogui
+    </code> 
+    <img src="images/Zeren/mesh_modeling.png" title="Modeling Meshes with blender" width="100%"/> <br> <br> <br> <br>
+
+    <!-- ================================================================= -->
+    <h2>Feature 4: Homogeneous Volumatric Path Tracing (15 pts)</h2>
+    <p>Related files: <em>medium.h phase.h scene.h isotropic.cpp medium.cpp scene.cpp volpathmis.cpp</em></p>
+    <p>Time Spent: 24 hr</p>
+    <p>
+        I created an <em>Medium</em> class to create medium and implement free path sampling algorithm. The shape of the medium is a cube. The size and the location of the cube can be specified by the dimensions and origin label in XML file. Also the density of the medium can be specified by sigma_a and sigma_s label. 
+    </p>
+    <p>
+        Plus, the <em>Phase</em> class is the parent class of all kinds of phase function. I implement a isotropic phase function for sampling.
+    </p>
+    <p>
+        The <em>volpathmis.cpp</em> is a Volumatric Path Tracing integrator with importance sampling. It first detect if the ray will hit on the medium and if it is the case, we will perform free path sampling and phase function sampling to generate the next ray. If the ray do not hit on the medium or after free path sampling, it hit on a surface, than the intergrator will sample the BRDF of the surface just like path MIS intergrator that we implemented in the assignment.
+    </p>
+    <div class="twentytwenty-container">
+        <img src="images/Zeren/cbox_volpathmis.png" alt="Mine" class="img-responsive">
+        <img src="images/Zeren/mitsuba_volpathmis.png" alt="Mitsuba3" class="img-responsive">
+    </div>
+
+    <!-- ================================================================= -->
+    <h2>Feature 5: Advanced Camera (15 pts)</h2>
+    <p>Related files: <em>camera.h perspective.cpp render.cpp</em></p>
+    <p>Time Spent: 12 hr</p>
+    <h3> Depth of Field </h3>
+    <p>
+        Two parameters <em>Len Radius</em> and <em>Focal distance</em> can be adjusted for a thin len camera. Specifically, a point will be sampled on the lens based on the lens radius and the new camera ray will be generated with the sampled point as the origin and the point (passed by the original camera ray) on the focal plane as the target direction.
+    </p>
+    <em> Len Radius = 0.3, Focal Distance = 5.13 </em>
+    <div class="twentytwenty-container">
+        <img src="images/Zeren/cbox_volpathmis_dof.png" alt="Mine" class="img-responsive">
+        <img src="images/Zeren/mitsuba_dof_1.png" alt="Mitsuba3" class="img-responsive">
+    </div>
+    <em> Len Radius = 0.3, Focal Distance = 5.69 </em>
+    <div class="twentytwenty-container">
+        <img src="images/Zeren/cbox_volpathmis_dof2.png" alt="Mine" class="img-responsive">
+        <img src="images/Zeren/mitsuba_dof_2.png" alt="Mitsuba3" class="img-responsive">
+    </div>
+    <em> Len Radius = 0.3, Focal Distance = 6.4 </em>
+    <div class="twentytwenty-container">
+        <img src="images/Zeren/cbox_volpathmis_dof3.png" alt="Mine" class="img-responsive">
+        <img src="images/Zeren/mitsuba_dof_3.png" alt="Mitsuba3" class="img-responsive">
+    </div>
+    <h3> Lens distortion </h3>
+    <p>
+        For camera calibration, <code>r' = r + k_1 * r^3 + k_2 * r^5</code> here r is the distance between the principal point to the observed point, and r' is the calibrated distance. However, we need to perform a invert camera calibration to simulate the lens distortion. Here I use Newton method to optimize the unknown observed point. The distortion factor <em>K1, K2</em> are two parameters.
+    </p>
+    <em> K1 = 2, K2 = 2 </em>
+    <div class="twentytwenty-container">
+        <img src="images/Zeren/cbox_volpathmis_without.png" alt="Without Distortion" class="img-responsive">
+        <img src="images/Zeren/cbox_volpathmis_distortion.png" alt="With Distortion" class="img-responsive">
+    </div>
+    <h3> Chromatic Aberrations </h3>
+    <p>
+        For chromatic Aberrations, I sample 3 ray for each color channel and shift the point on the nearP plane base on the different color channel. The shifted weight is a user specific parameter, which can be set in XML using waveweight label. Also, don't forget to enable this feature using chromatic_aberration label.
+    </p>
+    <div class="twentytwenty-container">
+        <img src="images/Zeren/cbox_volpathmis_without.png" alt="Without Distortion" class="img-responsive">
+        <img src="images/Zeren/cbox_volpathmis_aberration.png" alt="With Distortion" class="img-responsive">
+    </div>
+    <!-- ================================================================= -->
+    <h2>Feature 6: Disney BSDF (15 pts)</h2>
+    <p>Related files: <em>disney_bsdf.cpp, warp.h, warp.cpp, warptest.cpp</em></p>
+    <p>Time Spent: 16 hr</p>
+    <p>
+        I have implemented 5 parameters: specular, specularTint, roughness, metallic, subsurface. Those parameters can be seperated into two lobes: the diffuse lobe captures the base diffusive color of the surface, and the metallic lobe that features major specular highlights.
+    </p>
+    <p>
+        The <em>diffuse</em> lobe are controled by roughness and subsurface parameter. The diffused color is based on Schlick Fresnel approximation and the subsurface scattering are modeled by Lommel-Seeliger law. Then those two terms are linearly combined by the subsurface parameter.
+    </p>
+    <p>
+        The <em>metallic</em> lobe are controled by metallic, specular, roughness and specularTint parameter. The specular reflection is based on Cook-Torrance microfacet BRDF. The normal vector distribution is a GTR2 distribution. The occlusion factor is derived from SmithGGX model. To make the specular reflection color close to the material color, a specularTint parameter is introduced, which replace the base color with the tint Color in the Fresnel term.
+    </p>
+    <p>
+        As for the sampling, the wo ray are sampled from the diffuse and metallic lobe, based on the metallic parameter. For diffuse lobe, the wo ray is sampled from CosineHemisphere and for metallic lobe it is sampled from GTR2.
+    </p>
+    <p>
+        For validation, I adjust one parameter each time and set the other parameter to 0.5. 
+    </p>
+
+    <p >
+        <em>metallic</em> <br> <img src="images/Zeren/cbox_volpathmis_human_metallic_0.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_metallic_3.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_metallic_7.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_metallic_10.png" width="250" height="188" >
+        <p style="margin-left:9em"> <strong> 0                   0.3                  0.7                  1 </strong>
+        </p>
+        <br>
+        <em>specular</em> <br> <img src="images/Zeren/cbox_volpathmis_human_specular_0.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_specular_3.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_specular_7.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_specular_10.png" width="250" height="188" >
+        <p style="margin-left:9em"> <strong> 0                   0.3                  0.7                  1 </strong>
+        </p>
+        <br>
+        <em>specularTint</em> <br> <img src="images/Zeren/cbox_volpathmis_human_specularTint_0.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_specularTint_3.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_specularTint_7.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_specularTint_10.png" width="250" height="188" >
+        <p style="margin-left:9em"> <strong> 0                   0.3                  0.7                  1 </strong>
+        </p>
+        <br>
+        <em>roughness</em> <br> <img src="images/Zeren/cbox_volpathmis_human_Roughness_0.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_Roughness_3.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_Roughness_7.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_Roughness_10.png" width="250" height="188" >
+        <p style="margin-left:9em"> <strong> 0                   0.3                  0.7                  1 </strong>
+        </p>
+        <br>
+        <em>subsurface</em> <br> <img src="images/Zeren/cbox_volpathmis_human_subsurface_0.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_subsurface_3.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_subsurface_7.png" width="250" height="188" ><img src="images/Zeren/cbox_volpathmis_human_subsurface_10.png" width="250" height="188" >
+        <p style="margin-left:9em"> <strong> 0                   0.3                  0.7                  1 </strong>
+        </p>
+        <br>
+        <br>
+    </p>
+    <p>
+        For clarify, I compare some imperceptible parameter side by side.
+    </p>
+    <em>specular</em>
+    <div class="twentytwenty-container">
+        <img src="images/Zeren/cbox_volpathmis_human_specular_0.png" alt="specular = 0" class="img-responsive">
+        <img src="images/Zeren/cbox_volpathmis_human_specular_10.png" alt="specular = 1" class="img-responsive">
+    </div>
+    <em>subsurface</em>
+    <div class="twentytwenty-container">
+        <img src="images/Zeren/cbox_volpathmis_human_subsurface_0.png" alt="subsurface = 0" class="img-responsive">
+        <img src="images/Zeren/cbox_volpathmis_human_subsurface_10.png" alt="subsurface = 1" class="img-responsive">
+    </div>
+   
+    <p>
+        In addition, I change the warptest to test the squaretoGTR2 function.
+    </p> 
+    <img src="images/Zeren/warptest_1.png" title="warptest for GTR2" width="49%"/> <img src="images/Zeren/warptest2.png" title="warptest for GTR2" width="49%"/> <br> <br> <br> <br>
+
+    <h2>Final Scene</h2>
+    <img src="images/final_scene.png" title="warptest for GTR2" width="49%"/> 
+</div>
+</div>
+
+
+<!-- Bootstrap core JavaScript -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script src="resources/bootstrap.min.js"></script>
+<script src="resources/jquery.event.move.js"></script>
+<script src="resources/jquery.twentytwenty.js"></script>
+
+
+<script>
+$(window).load(function(){$(".twentytwenty-container").twentytwenty({default_offset_pct: 0.5});});
+</script>
+
+</body>
+</html>
